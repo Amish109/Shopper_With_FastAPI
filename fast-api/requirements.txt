@@ -1,0 +1,11 @@
+fastapi                     # FastAPI framework
+uvicorn[standard]           # ASGI server, with extra for better performance
+SQLAlchemy>=2.0              # Ensure SQLAlchemy 2.x for async support
+asyncpg                     # Async PostgreSQL driver
+alembic                     # For database migrations
+python-dotenv               # Load .env variables
+pydantic>=1.10              # Latest stable Pydantic for schemas
+passlib[bcrypt]  
+python-jose[cryptography]  # For JWT creation and verification
+pydantic-settings
+pydantic[email]

@@ -1,0 +1,48 @@
+# https://chatgpt.com/c/68f3885d-659c-8321-a61e-0edbfbd4ec9a
+
+
+
+=============================  Contact Me ==============
+name : "Amish"
+emailId : "tiwariamish786@gmail.com"
+message : "Test"
+createdAt: 2024-07-06T13:44:24.061+00:00
+updatedAt: 2024-07-06T13:44:24.061+00:00
+__v : 0
+
+
+
+============================ Product ======================
+
+_id : 667aab1fd0fbe2e8455cb3de
+id : 7
+name : "Striped Flutter Sleeve Overlap Collar Peplum Hem Blouse"
+image : "https://res.cloudinary.com/dhfydiarj/image/upload/v1719315240/uyaghbly…"
+category : "women"
+new_price : 85
+old_price : 120.5
+available : true
+date: 2024-06-25T11:33:51.523+00:00
+createdAt: 2024-06-25T11:33:51.523+00:00
+updatedAt: 2024-06-25T11:33:51.523+00:00
+__v : 0
+
+
+=========================== User ===========================
+_id : 67ab65fb1c8488225e2417ce
+role : "user" 
+# enum:["admin","user","test_admin"],
+# default:"user"
+username: "amish_tiwari"
+email : "amish_Tiwari"
+password : "$2a$10$jslLqp4j6fv9xs69UB7B5.t0LI5K8Mvy2VSSnCj1vYXd537fVu6Qe"
+
+cartData[{
+product :14 # Relation
+quantity: 2
+}]
+
+createdAt: 2025-02-11T15:00:11.865+00:00
+updatedAt: 2025-02-11T15:00:32.937+00:00
+__v : 3
+refresh_token
