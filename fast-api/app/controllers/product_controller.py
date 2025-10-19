@@ -5,7 +5,6 @@ from app.core.database import get_db
 from app.models.products import Product
 from app.models.user import User
 from app.utils.cloudinary_utils import upload_to_cloudinary, delete_from_cloudinary
-from app.utils.response import api_response
 import shutil
 import os
 from app.utils import ErrorResponse, SuccessResponse

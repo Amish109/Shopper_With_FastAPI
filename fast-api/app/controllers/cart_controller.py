@@ -1,6 +1,7 @@
+from app.core.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from fastapi import Depends
+from fastapi import Depends,Response, Request
 from app.models.user import User
 from app.models.carts import Cart
 from app.models.product_collection import ProductCollection
@@ -10,7 +11,7 @@ from app.utils import ErrorResponse, SuccessResponse
 
 
 # 🛒 Add to cart
-async def add_to_cart(item_id: int, db: AsyncSession, current_user: User):
+async def add_to_cart(item_id: int,request: Request, db: AsyncSession = Depends(get_db)):
     try:
         # Check if the product exists
         result = await db.execute(select(Product).filter(Product.id == item_id))
@@ -26,7 +27,7 @@ async def add_to_cart(item_id: int, db: AsyncSession, current_user: User):
         item = Item(product_id=product.id, product_collection_id=product_collection.id)
         db.add(item)
         await db.flush()
-
+        current_user = request.state.user
         # Add a cart entry for the user
         cart_entry = Cart(user_id=current_user.id, product_collection_id=product_collection.id)
         db.add(cart_entry)
@@ -45,7 +46,8 @@ async def add_to_cart(item_id: int, db: AsyncSession, current_user: User):
 
 
 # 🧾 Get cart
-async def get_cart(db: AsyncSession, current_user: User):
+async def get_cart(request: Request, db: AsyncSession = Depends(get_db)):
+    current_user = request.state.user
     try:
         result = await db.execute(select(Cart).filter(Cart.user_id == current_user.id))
         user_carts = result.scalars().unique().all()
@@ -89,7 +91,8 @@ async def get_cart(db: AsyncSession, current_user: User):
 
 
 # ❌ Remove from cart
-async def remove_from_cart(cart_id: int, db: AsyncSession, current_user: User):
+async def remove_from_cart(cart_id: int,request: Request, db: AsyncSession = Depends(get_db)):
+    current_user = request.state.user
     try:
         result = await db.execute(
             select(Cart).filter(Cart.id == cart_id, Cart.user_id == current_user.id)
