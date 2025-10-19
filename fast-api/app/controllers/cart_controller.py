@@ -9,118 +9,204 @@ from app.models.items import Item
 from app.models.products import Product
 from app.utils import ErrorResponse, SuccessResponse
 
-
-# 🛒 Add to cart
-async def add_to_cart(item_id: int,request: Request, db: AsyncSession = Depends(get_db)):
+async def add_to_cart(item_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     try:
-        # Check if the product exists
+        current_user = request.state.user
+
+        # 1️⃣ Check if product exists
         result = await db.execute(select(Product).filter(Product.id == item_id))
         product = result.scalars().first()
         if not product:
             raise ErrorResponse(status_code=404, message="Product not found")
-        # Create a new ProductCollection
-        product_collection = ProductCollection()
-        db.add(product_collection)
-        await db.flush()  # ensures product_collection.id is available
 
-        # Add the item to ProductCollection
-        item = Item(product_id=product.id, product_collection_id=product_collection.id)
-        db.add(item)
-        await db.flush()
-        current_user = request.state.user
-        # Add a cart entry for the user
-        cart_entry = Cart(user_id=current_user.id, product_collection_id=product_collection.id)
-        db.add(cart_entry)
-        await db.commit()
-        await db.refresh(cart_entry)
-
-        return SuccessResponse(
-            status=200,
-            message="Cart updated successfully",
-            data={"cart_id": cart_entry.id},
+        # 2️⃣ Check if user already has a cart
+        existing_cart_query = await db.execute(
+            select(Cart).filter(Cart.user_id == current_user.id)
         )
+        existing_cart = existing_cart_query.scalars().first()
+
+        if not existing_cart:
+            # 3️⃣ Create a new product collection
+            new_collection = ProductCollection()
+            db.add(new_collection)
+            await db.flush()  # to get new_collection.id
+
+            # 4️⃣ Create a new cart linked to user and collection
+            new_cart = Cart(
+                user_id=current_user.id,
+                product_collection_id=new_collection.id
+            )
+            db.add(new_cart)
+            await db.flush()
+
+            # 5️⃣ Add product as a new item
+            new_item = Item(
+                product_id=product.id,
+                product_collection_id=new_collection.id
+            )
+            db.add(new_item)
+            await db.commit()
+
+            return SuccessResponse(
+                status=200,
+                message="New cart created and product added successfully",
+                data={
+                    "cart_id": new_cart.id,
+                    "product_id": product.id,
+                    "collection_id": new_collection.id
+                },
+            )
+
+        else:
+            # 6️⃣ User already has a cart → add product to same collection (even if same product already exists)
+            collection_id = existing_cart.product_collection_id
+
+            new_item = Item(
+                product_id=product.id,
+                product_collection_id=collection_id
+            )
+            db.add(new_item)
+            await db.commit()
+
+            return SuccessResponse(
+                status=200,
+                message="Product added to existing cart successfully",
+                data={
+                    "cart_id": existing_cart.id,
+                    "product_id": product.id,
+                    "collection_id": collection_id
+                },
+            )
+
+    except ErrorResponse as e:
+        raise e
     except Exception as e:
-        print("❌ Error adding to cart:", e)
         await db.rollback()
-        raise ErrorResponse(status_code=500, message="Something went wrong while adding to cart")
+        raise ErrorResponse(status_code=500, message=f"Internal Server Error: {str(e)}")
 
 
-# 🧾 Get cart
+# 🧾 Get user's cart
 async def get_cart(request: Request, db: AsyncSession = Depends(get_db)):
-    current_user = request.state.user
     try:
-        result = await db.execute(select(Cart).filter(Cart.user_id == current_user.id))
-        user_carts = result.scalars().unique().all()
+        current_user = request.state.user
 
-        if not user_carts:
+        # 1️⃣ Get user's cart
+        cart_result = await db.execute(
+            select(Cart).filter(Cart.user_id == current_user.id)
+        )
+        cart = cart_result.scalars().first()
+
+        if not cart:
             return SuccessResponse(status=200, message="Cart is empty", data=[])
 
-        cart_data = []
-        for cart in user_carts:
-            if not cart.product_collection:
-                continue
+        # 2️⃣ Get product collection for this cart
+        collection_id = cart.product_collection_id
+        if not collection_id:
+            return SuccessResponse(status=200, message="Cart is empty", data=[])
 
-            # Fetch all items in this product collection
-            item_result = await db.execute(
-                select(Item).filter(Item.product_collection_id == cart.product_collection_id)
-            )
-            items = item_result.scalars().all()
+        # 3️⃣ Get all items linked to this collection
+        items_result = await db.execute(
+            select(Item).filter(Item.product_collection_id == collection_id)
+        )
+        items = items_result.scalars().all()
 
-            product_list = []
-            for item in items:
-                if item.product:
-                    product_list.append({
-                        "id": item.product.id,
-                        "name": item.product.name,
-                        "image": item.product.image,
-                        "category": item.product.category,
-                        "new_price": float(item.product.new_price),
-                        "old_price": float(item.product.old_price) if item.product.old_price else None,
-                    })
+        if not items:
+            return SuccessResponse(status=200, message="Cart is empty", data=[])
 
-            cart_data.append({
+        # 4️⃣ For each item, get product details
+        product_list = []
+        for item in items:
+            if item.product:  # relationship: Item → Product
+                product_list.append({
+                    "item_id": item.id,
+                    "product_id": item.product.id,
+                    "name": item.product.name,
+                    "image": item.product.image,
+                    "category": item.product.category,
+                    "new_price": float(item.product.new_price),
+                    "old_price": float(item.product.old_price) if item.product.old_price else None,
+                })
+
+        # 5️⃣ Final response
+        return SuccessResponse(
+            status=200,
+            message="Cart fetched successfully",
+            data=[{
                 "cart_id": cart.id,
-                "products": product_list,
-            })
-
-        return SuccessResponse(status=200, message="Cart fetched successfully", data=cart_data)
+                "collection_id": collection_id,
+                "products": product_list
+            }]
+        )
 
     except Exception as e:
         print("❌ Error fetching cart:", e)
-        raise ErrorResponse(status_code=500, message="Something went wrong while fetching the cart")
+        raise ErrorResponse(status_code=500, message=f"Something went wrong while fetching the cart: {str(e)}")
 
-
-# ❌ Remove from cart
-async def remove_from_cart(cart_id: int,request: Request, db: AsyncSession = Depends(get_db)):
-    current_user = request.state.user
+# ❌ Remove one product from user's cart
+async def remove_from_cart(item_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     try:
-        result = await db.execute(
-            select(Cart).filter(Cart.id == cart_id, Cart.user_id == current_user.id)
+        current_user = request.state.user
+
+        # 1️⃣ Find user's cart
+        cart_result = await db.execute(
+            select(Cart).filter(Cart.user_id == current_user.id)
         )
-        cart_entry = result.scalars().first()
+        cart = cart_result.scalars().first()
+        if not cart:
+            raise ErrorResponse(status_code=404, message="Cart not found")
 
-        if not cart_entry:
-            raise ErrorResponse(status_code=404, message="Cart item not found")
+        # 2️⃣ Get the user's collection
+        collection_id = cart.product_collection_id
+        if not collection_id:
+            raise ErrorResponse(status_code=400, message="No product collection found for this cart")
 
-        # Delete related items + product collection
-        if cart_entry.product_collection_id:
-            await db.execute(
-                Item.__table__.delete().where(
-                    Item.product_collection_id == cart_entry.product_collection_id
-                )
+        # 3️⃣ Check if the item exists in that collection
+        item_result = await db.execute(
+            select(Item).filter(
+                Item.id == item_id,
+                Item.product_collection_id == collection_id
             )
+        )
+        item = item_result.scalars().first()
+
+        if not item:
+            raise ErrorResponse(status_code=404, message="Item not found in cart")
+
+        # 4️⃣ Delete that specific item
+        await db.delete(item)
+        await db.flush()
+
+        # 5️⃣ Check if collection has any more items
+        remaining_items_result = await db.execute(
+            select(Item).filter(Item.product_collection_id == collection_id)
+        )
+        remaining_items = remaining_items_result.scalars().all()
+
+        # 6️⃣ If collection is empty, remove collection and cart too
+        if not remaining_items:
             await db.execute(
                 ProductCollection.__table__.delete().where(
-                    ProductCollection.id == cart_entry.product_collection_id
+                    ProductCollection.id == collection_id
                 )
             )
+            await db.delete(cart)
 
-        await db.delete(cart_entry)
+        # 7️⃣ Commit all changes
         await db.commit()
 
-        return SuccessResponse(status=200, message="Cart item removed successfully")
+        return SuccessResponse(
+            status=200,
+            message="Item removed successfully from cart",
+            data={
+                "removed_item_id": item_id,
+                "cart_id": cart.id,
+                "collection_id": collection_id,
+                "cart_deleted": not remaining_items
+            },
+        )
 
+    except ErrorResponse as e:
+        raise e
     except Exception as e:
-        print("❌ Error removing cart item:", e)
         await db.rollback()
-        raise ErrorResponse(status_code=500, message="Something went wrong while removing cart item")
+        raise ErrorResponse(status_code=500, message=f"Something went wrong: {str(e)}")
