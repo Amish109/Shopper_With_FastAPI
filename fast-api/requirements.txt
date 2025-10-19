@@ -9,3 +9,4 @@ passlib[bcrypt]
 python-jose[cryptography]  # For JWT creation and verification
 pydantic-settings
 pydantic[email]
+cloudinary

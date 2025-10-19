@@ -1,7 +1,7 @@
 # main.py
 from fastapi import FastAPI
 from app.core.database import Base, engine
-from app.routes import user_router
+from app.routes import product_router, user_router
 
 app = FastAPI(title="FastAPI + PostgreSQL Starter")
 
@@ -13,6 +13,7 @@ async def init_db():
 
 # Include your routes
 app.include_router(user_router.router)
+app.include_router(product_router.router)
 
 @app.get("/")
 def root():

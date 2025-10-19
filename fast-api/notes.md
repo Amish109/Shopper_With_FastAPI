@@ -29,6 +29,22 @@ https://chatgpt.com/share/68f3fec9-4f88-8003-8ff4-d13dc41a831c
  <!-- IX] Middleware
  https://chatgpt.com/c/68f405df-6348-8322-9f55-6a43189562dc
   -->
+
+  <!-- Express js way routers with middleware 
+  https://chatgpt.com/c/68f4e773-4144-8320-954f-e2211f45a721 -->
+
+  <!-- File upload in FAST API
+  https://chatgpt.com/c/68f4e862-a0d4-8320-a518-135c174a33a3
+  -- diff betn shutil and normal file upload
+  https://chatgpt.com/c/68f50c0b-1b44-8321-bc2d-5ce25cacbd3a
+
+  <!-- https://fastapi.tiangolo.com/tutorial/request-files/#optional-file-upload -->
+   -->
+
+## Important
+   <!-- Querying ways 
+   https://chatgpt.com/c/68f4f32b-9e24-8323-bd3c-228a06824a36 
+    -->
 ## pydantic is used for data validation
 
 /*
