@@ -20,7 +20,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # ----------------- SIGN UP -----------------
 async def sign_up(user: UserSignUp, db: AsyncSession = Depends(get_db)):
     if not user.username or not user.email or not user.password:
-        return ErrorResponse(message="Please make sure all fields are filled")
+        raise ErrorResponse(message="Please make sure all fields are filled")
 
     # Check if user exists
     result = await db.execute(
@@ -28,7 +28,7 @@ async def sign_up(user: UserSignUp, db: AsyncSession = Depends(get_db)):
     )
     existing_user = result.scalars().first()
     if existing_user:
-        return ErrorResponse(message="User with this username or email already exists")
+        raise ErrorResponse(message="User with this username or email already exists")
 
     # Hash password
     hashed_password = pwd_context.hash(user.password)
@@ -55,11 +55,11 @@ async def sign_in(response: Response, user: UserSignIn, db: AsyncSession = Depen
     result = await db.execute(select(User).where(User.username == user.username))
     db_user = result.scalars().first()
     if not db_user:
-        return ErrorResponse(message="Invalid username or password")
+        raise ErrorResponse(message="Invalid username or password")
 
     # Verify password
     if not pwd_context.verify(user.password, db_user.password):
-        return ErrorResponse(message="Invalid username or password")
+        raise ErrorResponse(message="Invalid username or password")
 
     # Create JWT tokens
     access_token = create_access_token({"user_id": db_user.id})

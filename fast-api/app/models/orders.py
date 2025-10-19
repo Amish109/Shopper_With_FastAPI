@@ -7,10 +7,10 @@ class Order(Base):
     __tablename__ = "orders"
     
     id = Column(Integer, primary_key=True, index=True)
-    users = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     payment_status = Column(String(20), default='pending', server_default='pending')
-    product_collection = Column(Integer, ForeignKey("product_collection.id", ondelete="SET NULL"), nullable=True)
+    product_collection_id = Column(Integer, ForeignKey("product_collection.id", ondelete="SET NULL"), nullable=True)
     
-    # Relationships
+    # ✅ Relationships
     user = relationship("User", back_populates="orders")
     product_collection = relationship("ProductCollection", back_populates="orders")

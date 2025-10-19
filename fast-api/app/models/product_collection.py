@@ -11,7 +11,7 @@ class ProductCollection(Base):
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
     updated_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
     
-    # Relationships
+    # ✅ Relationships
     items = relationship("Item", back_populates="product_collection")
     carts = relationship("Cart", back_populates="product_collection")
     orders = relationship("Order", back_populates="product_collection")
